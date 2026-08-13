@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Write-Output \"---where npm---\"; where.exe npm 2>&1; Write-Output \"---where npm.cmd---\"; where.exe npm.cmd 2>&1; Write-Output \"---PATH entries with node/npm---\"; \\($env:PATH -split ';'\\) | Where-Object { $_ -match 'node|npm' })",
+      "WebFetch(domain:ceizaketines.es)",
+      "Bash(npm -v)",
+      "Bash(npx playwright *)",
+      "Bash(ls \"C:/Users/Windows/AppData/Local/ms-playwright\" 2>&1)",
+      "Read(//c/Users/Windows/AppData/Local/ms-playwright/**)",
+      "Bash(node \"C:/Users/Windows/AppData/Local/Temp/claude/c--Users-Windows-Documents-healenium/dacbb7a7-ea97-46a5-b582-9301c6f53df0/scratchpad/inspect.js\")",
+      "Bash(node _inspect.js)",
+      "Bash(node _inspect2.js)",
+      "Bash(node _inspect3.js)",
+      "Bash(node _inspect4.js)",
+      "Bash(node -e ' *)",
+      "Bash(xargs cat)"
+    ]
+  }
+}
