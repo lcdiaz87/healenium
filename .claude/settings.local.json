@@ -13,7 +13,20 @@
       "Bash(node _inspect3.js)",
       "Bash(node _inspect4.js)",
       "Bash(node -e ' *)",
-      "Bash(xargs cat)"
+      "Bash(xargs cat)",
+      "WebSearch",
+      "Bash(npm install *)",
+      "Bash(npx bddgen *)",
+      "Bash(rm -f features/_probe.feature)",
+      "Bash(node -e \"console.log\\(Object.keys\\(require\\('playwright-bdd'\\)\\)\\)\")",
+      "Bash(printf 'const msg: string = \"typescript nativo ok\";\\\\nconsole.log\\(msg\\);\\\\n')",
+      "Bash(node _ts_probe.ts)",
+      "Bash(rm -f _ts_probe.ts)",
+      "Bash(printf 'import { existsSync } from \"node:fs\";\\\\nconst x: string = \"esm ok\";\\\\nconsole.log\\(x, existsSync\\(\".\"\\)\\);\\\\n')",
+      "Bash(node _probe.mts)",
+      "Bash(rm -f _probe.mts)",
+      "Bash(npm run *)",
+      "Bash(rm -f features/_probe.feature features/steps/pending.steps.ts)"
     ]
   }
 }
