@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Demo Healenium — antes del rediseño</title>
+</head>
+<body>
+  <!-- Reproduce la estructura real de la portada de ceizaketines.es:
+       cuatro enlaces-botón que comparten la misma clase. El tercero es el
+       que abre el simulador de cuota. -->
+  <div id="wrapper">
+    <div class="container">
+      <div class="row">
+        <div class="text-center col-md my-2">
+          <a href="#reserva" class="btn btn-success btn-lg">RESERVA TU CITA</a>
+        </div>
+        <div class="text-center col-md my-2">
+          <a href="#matriculacion" class="btn btn-success btn-lg">Matriculación 2026/2027</a>
+        </div>
+        <div class="text-center col-md my-2">
+          <a href="javascript:void(0)" class="btn btn-success btn-lg" onclick="abrirSimulador()">Simulación de su cuota</a>
+        </div>
+        <div class="text-center col-md my-2">
+          <a href="#contacto" class="btn btn-success btn-lg">Contacta con nosotros</a>
+        </div>
+      </div>
+    </div>
+    <div id="resultado" style="display:none">Simulador de cuota abierto</div>
+  </div>
+
+  <script>
+    function abrirSimulador() {
+      document.getElementById('resultado').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

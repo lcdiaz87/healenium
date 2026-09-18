@@ -19,6 +19,16 @@ export const config: Options.Testrunner = {
     {
       browserName: 'chrome',
       acceptInsecureCerts: true,
+      // Same window size as the local config: the site's header overlaps the
+      // hero carousel on small viewports and the nav links stop being clickable.
+      'goog:chromeOptions': {
+        args: ['--window-size=1400,1000'],
+      },
+      // Healenium's proxy only understands classic WebDriver HTTP commands.
+      // Without this, WebdriverIO v9 negotiates BiDi and resolves elements
+      // over a WebSocket the proxy never sees — so nothing could be healed.
+      // It also avoids wdio trying to reach the Grid's internal Docker IP.
+      'wdio:enforceWebDriverClassic': true,
     },
   ],
 };

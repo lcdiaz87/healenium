@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Demo Healenium — después del rediseño</title>
+</head>
+<body>
+  <!-- Misma página, pero con un "rediseño" como los que rompen tests en la
+       vida real: la clase de tamaño de los botones pasó de btn-lg a btn-xl.
+       El XPath que buscaba class="btn btn-success btn-lg" ya no encuentra
+       nada, aunque los botones siguen ahí y el usuario no nota diferencia.
+       Healenium debe reconocer el tercer botón por su estructura y texto. -->
+  <div id="wrapper">
+    <div class="container">
+      <div class="row">
+        <div class="text-center col-md my-2">
+          <a href="#reserva" class="btn btn-success btn-xl">RESERVA TU CITA</a>
+        </div>
+        <div class="text-center col-md my-2">
+          <a href="#matriculacion" class="btn btn-success btn-xl">Matriculación 2026/2027</a>
+        </div>
+        <div class="text-center col-md my-2">
+          <a href="javascript:void(0)" class="btn btn-success btn-xl" onclick="abrirSimulador()">Simulación de su cuota</a>
+        </div>
+        <div class="text-center col-md my-2">
+          <a href="#contacto" class="btn btn-success btn-xl">Contacta con nosotros</a>
+        </div>
+      </div>
+    </div>
+    <div id="resultado" style="display:none">Simulador de cuota abierto</div>
+  </div>
+
+  <script>
+    function abrirSimulador() {
+      document.getElementById('resultado').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

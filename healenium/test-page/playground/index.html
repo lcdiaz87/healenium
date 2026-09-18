@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Playground Healenium — edítame</title>
+</head>
+<body>
+  <!-- ========================================================================
+       PÁGINA PARA EXPERIMENTAR CON HEALENIUM
+
+       El test busca SIEMPRE este localizador, que nunca cambia:
+
+           (//a[@class="btn btn-success btn-lg"])[3]
+
+       Flujo:
+         1. npm run healenium:playground   -> pasa; Healenium aprende el botón
+         2. Edita este fichero y rompe el localizador (ver ideas abajo)
+         3. npm run healenium:playground   -> debería seguir pasando, sanado
+
+       Ideas para romperlo (cualquiera vale):
+         - Cambia btn-lg por btn-xl en los cuatro enlaces
+         - Cambia btn-success por btn-primary
+         - Añade un quinto botón ANTES del tercero (desplaza el índice [3])
+         - Reordena los <div class="text-center col-md my-2">
+
+       Para volver a empezar de cero: npm run healenium:reset && npm run healenium:up
+       ===================================================================== -->
+  <div id="wrapper">
+    <div class="container">
+      <div class="row">
+        <div class="text-center col-md my-2">
+          <a href="#reserva" class="btn btn-success btn-lg">RESERVA TU CITA</a>
+        </div>
+        <div class="text-center col-md my-2">
+          <a href="#matriculacion" class="btn btn-success btn-lg">Matriculación 2026/2027</a>
+        </div>
+        <div class="text-center col-md my-2">
+          <a href="javascript:void(0)" class="btn btn-success btn-lg" onclick="abrirSimulador()">Simulación de su cuota</a>
+        </div>
+        <div class="text-center col-md my-2">
+          <a href="#contacto" class="btn btn-success btn-lg">Contacta con nosotros</a>
+        </div>
+      </div>
+    </div>
+    <div id="resultado" style="display:none">Simulador de cuota abierto</div>
+  </div>
+
+  <script>
+    function abrirSimulador() {
+      document.getElementById('resultado').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

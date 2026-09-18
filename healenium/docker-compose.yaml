@@ -10,13 +10,17 @@ version: "3.8"
 services:
 
   postgres-db:
-    image: postgres:11-alpine
+    image: postgres:15.5-alpine
     container_name: postgres-db
     restart: always
     ports:
       - "5432:5432"
     volumes:
       - ./db/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      # Named volume: without it, any `docker compose up` that recreates this
+      # container silently wipes every healed-selector reference Healenium has
+      # learned. Use `npm run healenium:reset` when you *want* a clean slate.
+      - healenium-db:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=healenium
       - POSTGRES_USER=healenium_user
@@ -25,7 +29,7 @@ services:
       - healenium
 
   healenium:
-    image: healenium/hlm-backend:3.4.1
+    image: healenium/hlm-backend:4.0.2
     container_name: healenium
     restart: on-failure
     ports:
@@ -48,8 +52,21 @@ services:
     networks:
       - healenium
 
+  # Serves the two variants of the demo page (v1 = before a redesign,
+  # v2 = after). Reachable from the browser containers as http://test-page/.
+  test-page:
+    image: nginx:alpine
+    container_name: test-page
+    restart: on-failure
+    ports:
+      - "8090:80"
+    volumes:
+      - ./test-page/:/usr/share/nginx/html/:ro
+    networks:
+      - healenium
+
   selector-imitator:
-    image: healenium/hlm-selector-imitator:1.2
+    image: healenium/hlm-selector-imitator:1.6
     container_name: selector-imitator
     restart: on-failure
     ports:
@@ -58,7 +75,7 @@ services:
       - healenium
 
   hlm-proxy:
-    image: healenium/hlm-proxy:1.3.6
+    image: healenium/hlm-proxy:3.0.6
     container_name: hlm-proxy
     restart: on-failure
     ports:
@@ -118,3 +135,7 @@ services:
 networks:
   healenium:
     name: healenium
+
+volumes:
+  healenium-db:
+    name: healenium-db

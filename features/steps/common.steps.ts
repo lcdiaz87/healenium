@@ -94,5 +94,9 @@ Then('el menú principal muestra los enlaces {string}', async (csv: string) => {
 
 Then('el pie de página muestra el aviso de copyright del año actual', async () => {
   const currentYear = new Date().getFullYear();
-  await expect($(`*=© ${currentYear} C.E.I. Zaketines`)).toBeDisplayed();
+  // Targeted selector rather than a page-wide text search: wdio's `*=` text
+  // strategy doesn't resolve this node consistently across browsers.
+  const copyright = $('footer.second p');
+  await expect(copyright).toBeDisplayed();
+  await expect(copyright).toHaveText(new RegExp(`©\\s*${currentYear}\\s*C\\.E\\.I\\. Zaketines`));
 });
