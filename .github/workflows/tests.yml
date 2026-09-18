@@ -1,0 +1,65 @@
+name: Tests
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    name: WebdriverIO + Cucumber (no Healenium)
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+    - name: Install dependencies
+      run: npm ci
+    - name: Run tests
+      run: npm test
+
+  test-healed:
+    name: Same suite, routed through the Healenium proxy
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+    - name: Install dependencies
+      run: npm ci
+    - name: Start Healenium stack (backend, proxy, Selenium Grid)
+      run: npm run healenium:up
+    - name: Run tests through hlm-proxy
+      run: npm run test:healed
+    - name: Healenium container logs (always, for debugging)
+      if: always()
+      run: docker compose -f healenium/docker-compose.yaml logs
+    - name: Stop Healenium stack
+      if: always()
+      run: npm run healenium:down
+
+  healing-demo:
+    name: Prove Healenium heals a broken selector
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+    - name: Install dependencies
+      run: npm ci
+    - name: Start Healenium stack (backend, proxy, Selenium Grid)
+      run: npm run healenium:up
+    - name: Seed baseline + verify a deliberately broken selector gets healed
+      run: npm run healenium:demo
+    - name: Healenium container logs (always, for debugging)
+      if: always()
+      run: docker compose -f healenium/docker-compose.yaml logs
+    - name: Stop Healenium stack
+      if: always()
+      run: npm run healenium:down

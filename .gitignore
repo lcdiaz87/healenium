@@ -1,11 +1,11 @@
-
-# Playwright
 node_modules/
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-/playwright/.auth/
 
-# playwright-bdd generated specs (build artifact, not source)
-/.features-gen/
+# WebdriverIO
+/logs/
+/allure-results/
+/allure-report/
+/wdio-logs/
+
+# Healenium Docker volumes
+/healenium/logs/
+/healenium/screenshots/

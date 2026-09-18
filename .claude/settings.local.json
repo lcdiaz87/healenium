@@ -26,7 +26,19 @@
       "Bash(node _probe.mts)",
       "Bash(rm -f _probe.mts)",
       "Bash(npm run *)",
-      "Bash(rm -f features/_probe.feature features/steps/pending.steps.ts)"
+      "Bash(rm -f features/_probe.feature features/steps/pending.steps.ts)",
+      "WebFetch(domain:healenium.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:registry.npmjs.org)",
+      "Bash(curl -s \"https://raw.githubusercontent.com/healenium/healenium-example-playwright-dotnet/master/README.md\")",
+      "Bash(curl -s \"https://api.github.com/orgs/healenium/repos?per_page=100\")",
+      "Bash(gh api *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://api.github.com/repos/healenium/healenium-playwright-proxy)",
+      "Bash(curl -s https://api.github.com/repos/healenium/healenium-playwright-proxy)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:aws.amazon.com)"
     ]
   }
 }

@@ -4,17 +4,30 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "bddgen && playwright test",
-    "bddgen": "bddgen",
-    "steps:gen": "node scripts/gen-steps.mts"
+    "test": "wdio run ./wdio.conf.ts",
+    "test:healed": "wdio run ./wdio.healenium.conf.ts",
+    "healenium:up": "docker compose -f healenium/docker-compose.yaml up -d && wait-on -t 120000 http://127.0.0.1:7878/healing tcp:127.0.0.1:4444 tcp:127.0.0.1:8085",
+    "healenium:down": "docker compose -f healenium/docker-compose.yaml down",
+    "healenium:demo": "node scripts/healing-demo.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "devDependencies": {
-    "@playwright/test": "^1.62.1",
     "@types/node": "^26.2.0",
-    "playwright-bdd": "^9.2.0"
+    "@wdio/cli": "^9.31.3",
+    "@wdio/cucumber-framework": "^9.31.2",
+    "@wdio/globals": "^9.31.3",
+    "@wdio/local-runner": "^9.31.3",
+    "@wdio/spec-reporter": "^9.31.2",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2",
+    "wait-on": "^9.1.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "edgedriver@6.3.0": true,
+    "geckodriver@6.1.1": true
   }
 }

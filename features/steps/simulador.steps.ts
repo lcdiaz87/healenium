@@ -1,11 +1,6 @@
-import { expect } from '@playwright/test';
-import { createBdd, DataTable } from 'playwright-bdd';
-
-export const { Given, When, Then } = createBdd();
-
-function escapeRegex(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+import { When, Then } from '@wdio/cucumber-framework';
+import type { DataTable } from '@cucumber/cucumber';
+import { browser, $, expect } from '@wdio/globals';
 
 const conjuntaFieldMap: Record<string, { id: string; kind: 'select' | 'fill' }> = {
   'año de nacimiento': { id: 'nacimientoconjunta', kind: 'select' },
@@ -22,60 +17,61 @@ const tabSuffix: Record<string, string> = {
   'Renta Individual': 'separada',
 };
 
-When('abro el simulador de cuota', async ({ page }) => {
-  await page.getByRole('link', { name: 'Simulación de su cuota' }).click();
-  await expect(page.locator('.modal-dialog')).toBeVisible();
+When('abro el simulador de cuota', async () => {
+  await $('a=Simulación de su cuota').click();
+  await expect($('.modal-dialog')).toBeDisplayed();
+  // WebDriver's click doesn't wait for CSS transitions to settle the way
+  // Playwright's actionability checks do, so give Bootstrap's modal fade-in
+  // time to finish before interacting with its contents.
+  await browser.pause(350);
 });
 
-When('relleno el simulador de {string} con estos datos:', async ({ page }, tab: string, table: DataTable) => {
+When('relleno el simulador de {string} con estos datos:', async (tab: string, table: DataTable) => {
   if (tab !== 'Renta Conjunta') {
     throw new Error(`Solo está soportado el relleno automático de "Renta Conjunta" (recibido: "${tab}")`);
   }
   for (const { campo, valor } of table.hashes()) {
     const field = conjuntaFieldMap[campo];
     if (!field) throw new Error(`Campo desconocido en el simulador: "${campo}"`);
-    const locator = page.locator(`#${field.id}`);
+    const el = $(`#${field.id}`);
     if (field.kind === 'select') {
-      await locator.selectOption(valor);
+      await el.selectByVisibleText(valor);
     } else {
-      await locator.fill(valor);
+      await el.clearValue();
+      await el.setValue(valor);
     }
   }
 });
 
-When('pulso {string}', async ({ page }, label: string) => {
-  await page.getByRole('button', { name: label }).click();
+When('pulso {string}', async (label: string) => {
+  await $(`button=${label}`).click();
 });
 
-When('cambio a la pestaña {string}', async ({ page }, tab: string) => {
-  await page.getByRole('link', { name: tab }).click();
+When('cambio a la pestaña {string}', async (tab: string) => {
+  await $(`a=${tab}`).click();
 });
 
-When('cierro el simulador con {string}', async ({ page }, how: string) => {
-  if (how === '×') {
-    await page.getByRole('button', { name: 'Close' }).click();
-  } else {
-    await page.getByRole('button', { name: how }).click();
-  }
-  await expect(page.locator('.modal-dialog')).toBeHidden();
+When('cierro el simulador con {string}', async (how: string) => {
+  await $(`button=${how}`).click();
+  await expect($('.modal-dialog')).not.toBeDisplayed();
 });
 
-Then('el resultado del simulador muestra un importe total en euros al mes', async ({ page }) => {
-  await expect(page.locator('#resultadoTexto')).toContainText(/Total: \d+,\d+€\/mes\./);
+Then('el resultado del simulador muestra un importe total en euros al mes', async () => {
+  await expect($('#resultadoTexto')).toHaveText(/Total: \d+,\d+€\/mes\./);
 });
 
-Then('los campos de {string} son visibles', async ({ page }, tab: string) => {
+Then('los campos de {string} son visibles', async (tab: string) => {
   const suffix = tabSuffix[tab];
-  await expect(page.locator(`#nacimiento${suffix}`)).toBeVisible();
+  await expect($(`#nacimiento${suffix}`)).toBeDisplayed();
 });
 
-Then('los campos de {string} no son visibles', async ({ page }, tab: string) => {
+Then('los campos de {string} no son visibles', async (tab: string) => {
   const suffix = tabSuffix[tab];
-  await expect(page.locator(`#nacimiento${suffix}`)).toBeHidden();
+  await expect($(`#nacimiento${suffix}`)).not.toBeDisplayed();
 });
 
-Then('el campo {string} conserva el valor {string}', async ({ page }, campo: string, valorParcial: string) => {
+Then('el campo {string} conserva el valor {string}', async (campo: string, valorParcial: string) => {
   const field = conjuntaFieldMap[campo];
   if (!field) throw new Error(`Campo desconocido en el simulador: "${campo}"`);
-  await expect(page.locator(`#${field.id}`)).toHaveValue(new RegExp(escapeRegex(valorParcial)));
+  await expect($(`#${field.id}`)).toHaveValue(expect.stringContaining(valorParcial));
 });
