@@ -1,31 +1,37 @@
-// Two-phase Healenium self-healing demo. Requires the Docker stack running
-// (npm run healenium:up) and talks to it through wdio.healenium.conf.ts.
+// Demo de auto-sanación de Healenium en dos fases.
+// Requiere el stack Docker levantado (npm run healenium:up) y habla con él
+// a través de wdio.healenium.conf.ts.
 //
-// The test's locator is identical in both phases. What changes is the page:
+// El localizador del test es IDÉNTICO en las dos fases. Lo que cambia es la página:
 //
-//   Phase 1 → http://test-page/v1/  the button still has class "btn btn-success
-//             btn-lg", the locator matches, and healenium-backend records a
-//             DOM fingerprint of the element it found.
-//   Phase 2 → http://test-page/v2/  same page after a "redesign" (btn-lg →
-//             btn-xl). The locator now matches nothing. hlm-proxy should spot
-//             the failed lookup, ask the backend for the closest match to the
-//             fingerprint from phase 1, and let the scenario pass anyway.
+//   Fase 1 -> http://test-page/v1/   el botón todavía tiene class="btn btn-success
+//             btn-lg", el localizador encuentra el elemento, y healenium-backend
+//             guarda una huella del DOM que lo rodea.
+//   Fase 2 -> http://test-page/v2/   la misma página tras un "rediseño"
+//             (btn-lg -> btn-xl). El localizador ya no encuentra nada. hlm-proxy
+//             debe detectar el fallo, pedir al backend el elemento más parecido a
+//             la huella de la fase 1, y dejar que el escenario pase igualmente.
 //
-// That direction matters: Healenium indexes its reference data by the locator,
-// so it heals locators broken by page changes — not locators edited in code.
+// La dirección del cambio importa: Healenium indexa su histórico por el
+// localizador, así que repara localizadores rotos por cambios en la PÁGINA,
+// no localizadores editados en el código.
 import { spawn, execFileSync } from 'node:child_process';
 
 const V1_URL = 'http://test-page/v1/';
 const V2_URL = 'http://test-page/v2/';
+const HEALING_SPEC = 'features/healing/healing.feature';
 
-// Healenium saves reference data fire-and-forget: if the backend isn't ready
-// yet, phase 1 still passes but stores nothing, and phase 2 then fails with a
-// misleading "element wasn't found". Check explicitly instead of guessing.
+/**
+ * Healenium guarda las huellas sin esperar respuesta (fire-and-forget): si el
+ * backend aún no está listo, la fase 1 pasa igualmente pero no guarda nada, y
+ * la fase 2 falla luego con un engañoso "element wasn't found".
+ * Se comprueba de forma explícita en lugar de suponerlo.
+ */
 function storedSelectorCount() {
   const out = execFileSync(
     'docker',
     ['exec', 'postgres-db', 'psql', '-U', 'healenium_user', '-d', 'healenium',
-     '-t', '-A', '-c', 'SELECT count(*) FROM healenium.selector;'],
+      '-t', '-A', '-c', 'SELECT count(*) FROM healenium.selector;'],
     { encoding: 'utf-8' },
   );
   return Number.parseInt(out.trim(), 10);
@@ -38,11 +44,11 @@ function runWdio(url, label) {
 
     const child = spawn(
       'npx',
-      ['wdio', 'run', './wdio.healenium.conf.ts', '--spec', 'features/healenium-demo.feature', '--cucumberOpts.tags=@healing-demo'],
+      ['wdio', 'run', './wdio.healenium.conf.ts', '--spec', HEALING_SPEC],
       {
         stdio: 'inherit',
-        // Node on Windows refuses to spawn .cmd shims directly (CVE-2024-27980),
-        // so npx has to go through the shell there.
+        // En Windows, Node se niega a lanzar directamente los .cmd desde
+        // spawn (CVE-2024-27980), así que npx tiene que pasar por la shell.
         shell: process.platform === 'win32',
         env: { ...process.env, HEAL_DEMO_URL: url },
       },
@@ -50,7 +56,7 @@ function runWdio(url, label) {
 
     child.on('exit', (code) => {
       if (code === 0) resolve();
-      else reject(new Error(`${label} failed (exit code ${code})`));
+      else reject(new Error(`${label} falló (código de salida ${code})`));
     });
   });
 }
@@ -63,7 +69,7 @@ async function main() {
     throw new Error(
       'La fase 1 pasó pero Healenium no guardó ningún selector de referencia.\n' +
       'Normalmente significa que healenium-backend aún no estaba listo. Espera a que\n' +
-      '`npm run healenium:up` termine del todo y vuelve a lanzar el demo.',
+      '`npm run healenium:up` termine del todo y vuelve a lanzar la demo.',
     );
   }
   console.log(`\nHealenium ha guardado ${stored} selector(es) de referencia.`);

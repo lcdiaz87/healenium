@@ -1,94 +1,109 @@
-# Zaketines E2E Tests
+# Tests E2E con auto-sanación de localizadores (Healenium)
 
-E2E test suite for [ceizaketines.es](https://ceizaketines.es) (a nursery school site),
-written in Gherkin/TypeScript, wired up to **Healenium** so a broken CSS/XPath
-selector can be healed automatically at runtime instead of breaking the build.
+Suite de tests end-to-end sobre [ceizaketines.es](https://ceizaketines.es), escrita en **Gherkin + TypeScript** sobre **WebdriverIO**, y conectada a **Healenium** para que un selector roto por un cambio de la web se repare solo en tiempo de ejecución en lugar de tumbar la build.
 
-## Why WebdriverIO, not Playwright
+> **Sobre el idioma de este repo:** el código y los escenarios están en inglés (es lo estándar en automatización y lo que espera cualquier equipo internacional). Los comentarios y toda la documentación están en español, para que se entienda el *porqué* de cada decisión. Cada carpeta tiene su propio README explicando qué hay dentro.
 
-This project started on Playwright + `playwright-bdd`. Healenium's self-healing
-proxy for Playwright (`healenium-playwright-proxy`) turned out to **not be
-public** — its own official example repo links to a repository that 404s, and
-the only working Playwright integration Healenium ships is the paid
-**Healenium Pro** product (an AWS Marketplace AMI, billed hourly).
+---
 
-Healenium's original and fully open-source integration is for Selenium/WebDriver
-clients, via `healenium-proxy` — a locator-healing proxy that speaks the plain
-WebDriver protocol. WebdriverIO speaks that protocol natively, so pointing it at
-the proxy instead of a driver needs no extra plugin, just a config change. That's
-why this suite runs on WebdriverIO + `@wdio/cucumber-framework` rather than
-Playwright: it's the path that's actually free and open source end to end.
+## Índice
 
-The 12 Gherkin scenarios themselves didn't need to change — only the step
-definitions (Playwright's `page` API → WebdriverIO's `$`/`$$`/`browser`).
+| Carpeta | Qué encontrarás |
+|---|---|
+| [`features/`](features/) | Qué es Gherkin, qué es Cucumber y cómo se organizan los tests |
+| [`features/site/`](features/site/) | La suite real contra uan web existente, por niveles |
+| [`features/healing/`](features/healing/) | La demo de auto-sanación y cómo trastear con ella |
+| [`healenium/`](healenium/) | El stack Docker: qué hace cada uno de los 8 contenedores |
+| [`scripts/`](scripts/) | La orquestación de la demo en dos fases |
 
-## How it works
+---
 
-```
-WebdriverIO  →  hlm-proxy  →  Selenium Grid (selenium-hub + browser nodes)
-                    ↕
-             healenium-backend + Postgres
-             (stores a DOM/selector "fingerprint" every time a locator
-              succeeds; on a failed locator, hlm-proxy asks the backend
-              for the closest historical match and retries with it)
-```
-
-Everything in `healenium/docker-compose.yaml` is a public, Apache-2.0-licensed
-Docker Hub image (`healenium/hlm-*` + the official `selenium/*` Grid images) —
-no paid component involved.
-
-## Running the tests
+## Arranque rápido
 
 ```bash
 npm install
+npm test          # 12 escenarios en Chrome local. No necesita Docker.
 ```
 
-**Plain run, no Healenium** — WebdriverIO manages its own local Chrome:
+Para la parte de Healenium hace falta **Docker Desktop arrancado**:
 
 ```bash
-npm test
+npm run healenium:up     # levanta los 8 contenedores y espera a que respondan
+npm run healenium:demo   # demuestra la sanación de un localizador roto
+npm run healenium:down   # para el stack conservando lo aprendido
 ```
 
-**Routed through Healenium** — requires Docker:
+---
 
-```bash
-npm run healenium:up      # starts postgres, healenium-backend, selector-imitator,
-                           # hlm-proxy, a Selenium Grid and the demo page server,
-                           # then waits for all of them to answer
-npm run test:healed       # same 12 scenarios, via hlm-proxy this time
-npm run healenium:down    # stop, keeping what Healenium has learned
-npm run healenium:reset   # stop and wipe the learned selectors too
+## Por qué WebdriverIO y no Playwright
+
+Este proyecto empezó en **Playwright + playwright-bdd**. Al ir a integrar Healenium apareció el problema: el proxy de Healenium para Playwright (`healenium-playwright-proxy`) **no es público**. La única integración Playwright que Healenium ofrece es **Healenium Pro**, un producto de pago (AMI en AWS Marketplace, facturado por horas).
+
+La integración original y 100 % open source de Healenium es para clientes
+**Selenium/WebDriver**, vía `healenium-proxy`: un proxy que habla el protocolo WebDriver estándar. WebdriverIO habla ese protocolo de forma nativa, así que apuntarlo al proxy en lugar de a un driver **no necesita ningún plugin**, solo tres líneas de configuración.
+
+Los 12 escenarios Gherkin sobrevivieron intactos a la migración; solo hubo que reescribir los step definitions (`page` de Playwright → `$`/`$$`/`browser` de WebdriverIO).
+
+---
+
+## Cómo funciona
+
+```
+  npm test                          npm run test:healed / healenium:demo
+      │                                        │
+      ▼                                        ▼
+ WebdriverIO ──────────────────────────► hlm-proxy :8085
+ (Chrome local,                                │
+  sin Docker)                                  │ reenvía cada comando WebDriver
+                                               │ y vigila las respuestas
+                                               ▼
+                                        selenium-hub :4444
+                                          ├── node-chrome
+                                          └── node-firefox
+                                               │
+                    ¿"no such element"? ───────┘
+                                               │
+                                               ▼
+                              healenium-backend :7878 ──► postgres-db
+                                               │          (huellas del DOM)
+                                               ▼
+                                     selector-imitator :8000
+                                     (convierte el nodo hallado
+                                      en un selector usable)
 ```
 
-Wait for `healenium:up` to finish before running anything against the stack.
-Healenium saves its reference data fire-and-forget, so a test run that starts
-while `healenium-backend` is still booting will pass but teach Healenium
-nothing — and the failure only shows up later, as a locator that doesn't heal.
+**En una frase:** en cada búsqueda que funciona (éxito), Healenium guarda una "huella" del elemento (su cadena de ancestros en el DOM). Cuando un localizador deja de encontrar nada, compara el DOM actual contra esa huella, puntúa los candidatos y devuelve el más parecido como si el localizador original hubiera funcionado.
 
-## Proving the healing actually happens
+Todas las imágenes del stack son públicas y con licencia Apache 2.0 (`healenium/hlm-*` más las oficiales `selenium/*`). **No hay ningún componente de pago.**
 
-`npm test` / `npm run test:healed` only use selectors that work today, so
-passing doesn't by itself prove anything gets *healed*. `npm run healenium:demo`
-does, in two phases against the same running Docker stack.
+---
 
-The key detail is **what changes between the phases**. Healenium indexes its
-reference data by the locator itself, so it heals locators broken by the page
-changing underneath them — not locators edited in the test code. So the demo
-keeps the locator fixed and swaps the page instead, using two versions served
-by the `test-page` nginx container:
+## Comandos
 
-1. `http://test-page/v1/` — the button still has `class="btn btn-success btn-lg"`,
-   the XPath matches, and `healenium-backend` records a fingerprint of the element.
-2. `http://test-page/v2/` — the same page after a "redesign" (`btn-lg` → `btn-xl`).
-   The XPath now matches nothing, and the scenario is expected to **still pass**
-   because `hlm-proxy` heals the locator using the fingerprint from phase 1.
+| Comando | Qué hace | ¿Docker? |
+|---|---|---|
+| `npm test` | Los 12 escenarios en Chrome local | No |
+| `npm run test:healed` | Los mismos 12, enrutados por el proxy de Healenium | Sí |
+| `npm run healenium:up` | Levanta el stack y **espera** a que todo responda | Sí |
+| `npm run healenium:down` | Para el stack **conservando** el histórico aprendido | Sí |
+| `npm run healenium:reset` | Para el stack y **borra** el histórico (`down -v`) | Sí |
+| `npm run healenium:demo` | Demo de sanación en dos fases (ver abajo) | Sí |
+| `npm run healenium:playground` | Lanza el escenario contra la página que puedes editar tú | Sí |
 
-```bash
-npm run healenium:up
-npm run healenium:demo
-```
+> **Importante:** espera a que `healenium:up` termine del todo antes de lanzar tests. Healenium guarda sus huellas sin esperar respuesta (*fire-and-forget*), así que una ejecución que empiece mientras el backend arranca **pasará en verde pero no habrá aprendido nada** — y el fallo solo se ve después, como un localizador que no se sana.
+---
 
-Verified working — `hlm-proxy` logs the heal itself:
+## Demostrar que la sanación ocurre de verdad
+
+Que `npm test` pase no demuestra nada sobre la sanación: usa selectores que hoy funcionan. Lo que sí lo demuestra es `npm run healenium:demo`.
+
+La clave está en **qué cambia entre las dos fases**. Healenium indexa su histórico **por el propio localizador**, así que solo repara localizadores rotos porque la *página* cambió — no localizadores editados en el código. Por eso la demo mantiene el localizador fijo y cambia la página:
+
+1. **Fase 1** → `http://test-page/v1/` — el botón aún tiene `class="btn btn-success btn-lg"`, el XPath lo encuentra, y el backend guarda su huella.
+2. **Fase 2** → `http://test-page/v2/` — la misma página tras un "rediseño"
+   (`btn-lg` → `btn-xl`). El XPath ya no encuentra nada, y el escenario **debe pasar igualmente** porque el proxy sana el localizador con la huella de la fase 1.
+
+Verificado. El propio proxy lo registra:
 
 ```
 Find Element Request: {"using":"xpath","value":"(//a[@class=\"btn btn-success btn-lg\"])[3]"}
@@ -100,39 +115,60 @@ WARN  Using healed locator: Scored(score=0.972005772005772,
 Find Element Response: {"value":{"element-6066-11e4-a52e-4f735466cecf":"..."}}
 ```
 
-## What's verified
+Para experimentar tú mismo, hay una página editable en
+[`healenium/test-page/playground/`](healenium/test-page/playground/index.html): la rompes a mano y relanzas `npm run healenium:playground`. Detalles en[`features/healing/`](features/healing/).
 
-All three paths have been run end to end on this machine:
+---
 
-- `npm test` — 12 scenarios, local Chrome, green.
-- `npm run test:healed` — same 12 scenarios routed through `hlm-proxy` and the
-  dockerised Selenium Grid, green.
-- `npm run healenium:demo` — healing confirmed in the proxy logs (score 0.972).
+## Lo que conviene saber antes de usar Healenium en serio
 
-Two deviations from Healenium's own example repo, both deliberate:
+Cosas aprendidas montando esto, y que no suelen estar en los tutoriales:
 
-- **Newer image tags** (proxy `3.0.6`, backend `4.0.2`). The examples pin 2023
-  versions whose session teardown is incompatible with WebdriverIO v9 — the
-  scenario passes and then the run fails on `deleteSession`.
-- **A named volume for Postgres.** The example stores the database in the
-  container's writable layer, so any `docker compose up` that recreates the
-  container throws away everything Healenium has learned. For a tool whose
-  whole value is accumulated history, that's a footgun; `healenium:reset` is
-  there for when you actually want a clean slate.
+**No arregla tu código.** Sana en ejecución; tu repositorio sigue teniendo el localizador roto. Si nadie revisa los informes, acumulas deuda invisible: tests en verde sobre selectores muertos. Más aún: comprobé que **la huella tampoco se actualiza** tras sanar, así que seguirá sanando indefinidamente contra la referencia original.
 
-`wdio:enforceWebDriverClassic: true` in `wdio.healenium.conf.ts` is also
-load-bearing: WebdriverIO v9 otherwise negotiates WebDriver BiDi and resolves
-elements over a WebSocket that never passes through the proxy, so nothing would
-ever be healed.
+**Puede sanar al elemento equivocado.** Es el riesgo real. Si un rediseño elimina un botón, Healenium puede "encontrarlo" en otro parecido y ocultarte un bug de producción. `SCORE_CAP` (0.6 por defecto) es el umbral que lo controla, y se puede desactivar la sanación por selector desde su interfaz web.
 
-## Project structure
+**Necesita histórico.** Un localizador debe haber funcionado al menos una vez. En tests nuevos no protege de nada.
+
+**Solo cubre "elemento no encontrado".** No ayuda con textos que cambiaron y compruebas en un assert, ni con cambios de comportamiento.
+
+**Es un servicio con estado, no una librería.** Mantienes base de datos, backend y proxy. La BD es el activo: si la borras, vuelves a empezar de cero.
+---
+
+## Dos desviaciones deliberadas respecto al ejemplo oficial
+
+- **Versiones de imagen más nuevas** (proxy `3.0.6`, backend `4.0.2`). Los ejemplos oficiales fijan versiones de 2023 cuyo cierre de sesión es incompatible con WebdriverIO v9: el escenario pasa y luego la ejecución falla en `deleteSession`.
+- **Volumen nombrado para Postgres.** El ejemplo guarda la BD en la capa de escritura del contenedor, así que cualquier `docker compose up` que lo recree tira por la borda todo lo aprendido. Para una herramienta cuyo valor es el histórico acumulado, eso es una trampa; `healenium:reset` está para cuando de verdad quieras empezar limpio.
+
+Y una tercera pieza que no es opcional: `wdio:enforceWebDriverClassic: true` en`wdio.healenium.conf.ts`. Sin ella, WebdriverIO v9 negocia **WebDriver BiDi** y resuelve los elementos por un WebSocket que va directo al navegador sin pasar por el proxy. Healenium no vería ni un solo localizador y no sanaría nunca nada.
+
+---
+
+## Estado verificado
+
+| Ruta | Estado |
+|---|---|
+| `npm test` — 12 escenarios, Chrome local | ✅ verde |
+| `npm run test:healed` — los mismos vía proxy + Selenium Grid | ✅ verde |
+| `npm run healenium:demo` — sanación confirmada en los logs (score 0.972) | ✅ verde |
+| CI (`.github/workflows/tests.yml`) — 3 jobs | ✅ verde |
+
+---
+
+## Mapa del repositorio
 
 ```
-features/*.feature              Gherkin scenarios (Spanish), by difficulty
-features/steps/*.steps.ts       step definitions (TypeScript)
-wdio.shared.conf.ts             config shared by both run modes
-wdio.conf.ts                    local run, no Healenium
-wdio.healenium.conf.ts          routed through hlm-proxy
-healenium/docker-compose.yaml   the self-hosted Healenium + Selenium Grid stack
-scripts/healing-demo.mjs        the two-phase healing proof
+features/
+  site/                   suite contra la web existente (easy / medium / hard)
+    steps/                step definitions: navegación y simulador de cuota
+  healing/                la demo de auto-sanación, aislada a propósito
+    steps/
+wdio.shared.conf.ts       configuración común a los dos modos
+wdio.conf.ts              modo local, sin Healenium
+wdio.healenium.conf.ts    modo a través del proxy de Healenium
+healenium/
+  docker-compose.yaml     el stack completo autoalojado
+  test-page/              páginas v1 / v2 / playground de la demo
+scripts/
+  healing-demo.mjs        orquestación de la demo en dos fases
 ```

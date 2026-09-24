@@ -1,9 +1,12 @@
-import type { Options } from '@wdio/types';
-
-export const sharedConfig: Options.Testrunner = {
+/**
+ * Configuración común a los dos modos de ejecución.
+ *
+ * El tipo omite `capabilities` y `specs` a propósito: de eso se encargan
+ * wdio.conf.ts (Chrome local) y wdio.healenium.conf.ts (a través del proxy),
+ * que importan este objeto y lo extienden.
+ */
+export const sharedConfig: Omit<WebdriverIO.Config, 'capabilities' | 'specs'> = {
   runner: 'local',
-
-  specs: ['./features/**/*.feature'],
 
   logLevel: 'info',
   bail: 0,
@@ -16,17 +19,18 @@ export const sharedConfig: Options.Testrunner = {
   reporters: ['spec'],
 
   cucumberOpts: {
-    import: ['./features/steps/**/*.steps.ts'],
+    // Carga los step definitions de las dos carpetas (site/ y healing/).
+    // Cucumber casa cada línea de un .feature contra estas definiciones.
+    import: ['./features/**/steps/**/*.steps.ts'],
     backtrace: false,
     requireModule: [],
     dryRun: false,
     failFast: false,
+    // Si un paso de un .feature no tiene definición, imprime la plantilla
+    // lista para copiar en lugar de fallar sin más.
     snippets: true,
     source: true,
     strict: false,
-    // The healing demo scenario is excluded by default: it deliberately uses
-    // a broken selector and is only meant to run via `npm run healenium:demo`.
-    tags: 'not @healing-demo',
     timeout: 60000,
     ignoreUndefinedDefinitions: false,
   },

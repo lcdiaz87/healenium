@@ -1,16 +1,27 @@
-import type { Options } from '@wdio/types';
 import { sharedConfig } from './wdio.shared.conf.js';
 
 /**
- * Run through the Healenium proxy (hlm-proxy) instead of talking to a
- * browser driver directly. hlm-proxy forwards WebDriver commands to the
- * Selenium Grid started by healenium/docker-compose.yaml and, on a failed
- * locator, asks healenium-backend for a healed replacement before retrying.
- * Requires: docker compose -f healenium/docker-compose.yaml up -d
+ * Modo Healenium: en vez de hablar con un driver local, WebdriverIO apunta al
+ * proxy de Healenium (hlm-proxy) como si fuera un servidor Selenium normal.
+ *
+ *   WebdriverIO -> hlm-proxy:8085 -> selenium-hub:4444 -> Chrome
+ *                       |
+ *              healenium-backend + Postgres
+ *
+ * El proxy reenvía cada comando WebDriver y vigila las respuestas: cuando una
+ * búsqueda devuelve "no such element", pide al backend el elemento más parecido
+ * de su histórico y reintenta con él.
+ *
+ * Requiere el stack levantado: npm run healenium:up
+ * Ejecutar con: npm run test:healed
  */
-export const config: Options.Testrunner = {
+export const config: WebdriverIO.Config = {
   ...sharedConfig,
 
+  specs: ['./features/site/**/*.feature'],
+
+  // Estas tres líneas son TODA la integración con Healenium. No hace falta
+  // ningún plugin: el proxy habla el protocolo WebDriver estándar.
   hostname: '127.0.0.1',
   port: 8085,
   protocol: 'http',
@@ -19,16 +30,18 @@ export const config: Options.Testrunner = {
     {
       browserName: 'chrome',
       acceptInsecureCerts: true,
-      // Same window size as the local config: the site's header overlaps the
-      // hero carousel on small viewports and the nav links stop being clickable.
+
+      // Imprescindible. Sin esto, WebdriverIO v9 negocia WebDriver BiDi y
+      // resuelve los elementos por un WebSocket que va directo al navegador,
+      // sin pasar por el proxy. Healenium no vería ni un localizador y no
+      // podría sanar nada.
+      'wdio:enforceWebDriverClassic': true,
+
+      // Mismo tamaño de ventana que en local: los nodos del Grid arrancan con
+      // una ventana pequeña y varios escenarios fallaban por solapamiento.
       'goog:chromeOptions': {
         args: ['--window-size=1400,1000'],
       },
-      // Healenium's proxy only understands classic WebDriver HTTP commands.
-      // Without this, WebdriverIO v9 negotiates BiDi and resolves elements
-      // over a WebSocket the proxy never sees — so nothing could be healed.
-      // It also avoids wdio trying to reach the Grid's internal Docker IP.
-      'wdio:enforceWebDriverClassic': true,
     },
   ],
 };

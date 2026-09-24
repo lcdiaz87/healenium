@@ -5,12 +5,13 @@
   "main": "index.js",
   "scripts": {
     "test": "wdio run ./wdio.conf.ts",
+    "typecheck": "tsc --noEmit",
     "test:healed": "wdio run ./wdio.healenium.conf.ts",
     "healenium:up": "docker compose -f healenium/docker-compose.yaml up -d && wait-on -t 120000 http://127.0.0.1:7878/actuator/health tcp:127.0.0.1:4444 tcp:127.0.0.1:8085",
     "healenium:down": "docker compose -f healenium/docker-compose.yaml down",
     "healenium:reset": "docker compose -f healenium/docker-compose.yaml down -v",
     "healenium:demo": "node scripts/healing-demo.mjs",
-    "healenium:playground": "wdio run ./wdio.healenium.conf.ts --spec features/healenium-demo.feature --cucumberOpts.tags=@healing-demo"
+    "healenium:playground": "wdio run ./wdio.healenium.conf.ts --spec features/healing/healing.feature"
   },
   "keywords": [],
   "author": "",
