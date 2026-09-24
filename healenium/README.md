@@ -1,7 +1,6 @@
-# `healenium/` — el stack Docker
+# `healenium/`: el stack Docker
 
-Todo lo que hace falta para que la auto-sanación funcione, autoalojado. Ocho contenedores,
-todas las imágenes públicas y con licencia Apache 2.0. **Ningún componente de pago.**
+Todo lo que hace falta para que la auto-sanación funcione, autoalojado. Ocho contenedores, todas las imágenes públicas y con licencia Apache 2.0. **Ningún componente de pago.**
 
 ```bash
 npm run healenium:up      # levanta y espera a que todo responda
@@ -30,7 +29,7 @@ No son ocho piezas de Healenium: son tres grupos distintos.
 
 ### Auxiliar (1)
 
-`test-page` (8090) — un nginx que sirve las páginas de la demo. Tampoco es de Healenium: se añadió para tener un escenario de sanación determinista.
+`test-page` (8090) es un nginx que sirve las páginas de la demo. Tampoco es de Healenium: lo añadí para tener un escenario de sanación determinista, sin depender de ninguna web externa.
 
 ---
 
@@ -41,7 +40,7 @@ Cada pieza tiene necesidades distintas: el proxy está en el **camino crítico**
 Esa división explica también el reparto de tiempos:
 
 - **Búsqueda que funciona:** el proxy guarda la huella *fire-and-forget*, sin esperar. Coste casi cero.
-- **Búsqueda que falla:** aquí **sí bloquea**, porque necesita el elemento para responder. Medido en este proyecto: **~85 ms**.
+- **Búsqueda que falla:** aquí **sí bloquea**, porque necesita el elemento para responder. Lo medí en los logs de este proyecto: **~85 ms**.
 
 Es decir, Healenium solo cuesta tiempo cuando algo ya se ha roto.
 
@@ -89,8 +88,7 @@ llm, vcs          configuración de Healenium Pro; vacías en open source
 databasechangelog control de migraciones de Liquibase
 ```
 
-Las claves ajenas cuentan la historia entera: `selector` (qué buscabas) → `healing`
-(cuándo falló) → `healing_result` (qué se propuso y con qué nota).
+Las claves ajenas cuentan la historia entera: `selector` (qué buscabas), luego `healing` (cuándo falló), luego `healing_result` (qué se propuso y con qué nota).
 
 La huella **no es el DOM entero**: es solo la cadena de ancestros hasta el elemento. El HTML completo se guarda únicamente al sanar, en `healing.page_content`.
 
@@ -105,12 +103,11 @@ docker exec postgres-db psql -U healenium_user -d healenium -c "SELECT score, lo
 
 ## Dos desviaciones respecto al `docker-compose` oficial
 
-Ambas deliberadas, y ambas por haber chocado con el problema:
+Ambas deliberadas, y ambas porque me choqué con el problema:
 
-**Versiones más nuevas** — proxy `3.0.6`, backend `4.0.2`, imitator `1.6`, Postgres `15.5`.
-Los ejemplos oficiales fijan versiones de 2023 cuyo cierre de sesión es incompatible con WebdriverIO v9: el escenario pasa y después la ejecución revienta en `deleteSession`.
+**Versiones más nuevas**: proxy `3.0.6`, backend `4.0.2`, imitator `1.6`, Postgres `15.5`. Los ejemplos oficiales fijan versiones de 2023 cuyo cierre de sesión es incompatible con WebdriverIO v9: el escenario pasa y después la ejecución revienta en `deleteSession`.
 
-**Volumen nombrado para Postgres** — el ejemplo oficial guarda la base de datos en la capa de escritura del contenedor. Consecuencia: cualquier `docker compose up` que lo recree (por ejemplo, tras editar el compose) **borra en silencio todo lo aprendido**. Para una herramienta cuyo valor es el histórico acumulado, es una trampa seria. Aquí hay volumen nombrado, y `healenium:reset` para cuando de verdad quieras empezar limpio.
+**Volumen nombrado para Postgres**: el ejemplo oficial guarda la base de datos en la capa de escritura del contenedor. Consecuencia: cualquier `docker compose up` que lo recree (por ejemplo, tras editar el compose) **borra en silencio todo lo aprendido**. Me pasó en mitad del desarrollo y costó entender por qué una demo que funcionaba dejó de sanar. Para una herramienta cuyo valor es el histórico acumulado, es una trampa seria. Aquí hay volumen nombrado, y `healenium:reset` para cuando de verdad quieras empezar limpio.
 
 ---
 

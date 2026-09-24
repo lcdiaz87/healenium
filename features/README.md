@@ -1,15 +1,15 @@
-# `features/` — los tests
+# `features/`: los tests
 
 Aquí viven los escenarios y el código que los ejecuta. Dos carpetas con propósitos muy distintos, separadas a propósito:
 
 | Carpeta | Qué prueba | Depende de |
 |---|---|---|
-| [`site/`](site/) | La web existente | Internet y que la web siga en pie |
+| [`site/`](site/) | [ceizaketines.es](https://ceizaketines.es), una web de terceros | Internet y que esa web siga en pie |
 | [`healing/`](healing/) | Que Healenium repara localizadores | Docker (stack levantado) |
 
-**Por qué separadas:** la suite del sitio depende de una web externa que puede cambiar sin avisar, y sirve para comprobar *esa web*. La demo de sanación es determinista, corre sobre páginas locales servidas por nginx, y sirve para comprobar *la herramienta*. Mezclarlas haría que un fallo del sitio pareciera un fallo de Healenium y al revés.
+**Por qué las separé:** la suite del sitio depende de una web de terceros que puede cambiar sin avisar, y sirve para comprobar *esa web*. La demo de sanación es determinista, corre sobre páginas locales servidas por nginx, y sirve para comprobar *la herramienta*. Mezcladas, un fallo del sitio parecería un fallo de Healenium y al revés.
 
-La separación además es lo que permite que `npm test` (sin Docker) ejecute solo la suite del sitio: cada configuración apunta a su carpeta con `specs`, sin filtros por tags.
+Esa separación es además la que permite que `npm test` (sin Docker) ejecute solo la suite del sitio: cada configuración apunta a su carpeta con `specs`, sin filtros por tags.
 
 ---
 
@@ -23,8 +23,8 @@ En este proyecto el motor es `@wdio/cucumber-framework`, que por dentro usa `@cu
 ```
 easy.feature                          navigation.steps.ts
 ──────────────────────                ───────────────────────────────────────
-Given I am on the           ────────► Given('I am on the website homepage',
-      website homepage                async () => {
+Given I am on the           ────────► Given('I am on the Zaketines homepage',
+      Zaketines homepage                async () => {
                                           await browser.url(BASE_URL);
                                         });
 ```
@@ -45,7 +45,6 @@ Cucumber casa la línea del `.feature` con la cadena registrada en el step defin
 
 ## Convención de idioma
 
-Los `.feature` y los step definitions están **en inglés** (aunque se que Gherkin soporta español con la cabecera `# language: es` (`Dado / Cuando / Entonces`)); los comentarios si están **en español**.
+Los `.feature` y los step definitions están **en inglés** (aunque sé que Gherkin soporta español con la cabecera `# language: es`: `Dado / Cuando / Entonces`); los comentarios sí están **en español**.
+
 El motivo: el escenario es código compartido con el resto del mundo, pero el *porqué* de cada decisión conviene que se entienda sin fricción de idiomas.
-
-
